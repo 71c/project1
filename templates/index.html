@@ -5,11 +5,11 @@
 {% endblock %}
 
 {% block body %}
-    <ul>
-        {% for note in notes %}
-        <li>{{ note }}</li>
-        {% endfor %}
-    </ul>
+    {% if logged_in_yet %}
+        {{ login_success_or_failure_message }}
+    {% else %}
+        Please enter your new username and password.
+    {% endif %}
     <form action="{{ url_for('login') }}" method="post">
         <input type="text" name="username" placeholder="Enter username Here">
         <input type="text" name="password" placeholder="Enter password Here">

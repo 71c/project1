@@ -17,21 +17,32 @@ app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
+
 # Set up database
 engine = create_engine(os.getenv("DATABASE_URL"))
 db = scoped_session(sessionmaker(bind=engine))
 
-# r
+
 @app.route("/", methods=["GET", "POST"])
 def login():
+    logged_in_yet = False
+    login_success_or_failure_message = ""
     if request.method == "POST":
         if "user_id" not in session:
-            # new_id = len(user_ids)
-            # user_ids += [new_id]
+            print("aaaaaa")
+            session["user_id"] = 0
             session["username"] = request.form.get("username")
             session["password"] = request.form.get("password")
-    return render_template("index.html", notes=[session["username"], session["password"]])
-# dd
+        else:
+            logged_in_yet = True
+            if session["username"] == request.form.get("username") and session["password"] == request.form.get("password"):
+                login_success_or_failure_message = "you logged in!"
+            else:
+                login_success_or_failure_message = "wrong username or password"
+    if login_success_or_failure_message == "you logged in!":
+        return render_template("main.html")
+    return render_template("index.html", logged_in_yet=logged_in_yet, login_success_or_failure_message=login_success_or_failure_message)
+
 @app.route("/<string:latitude>,<string:longitude>")
 def hello(latitude, longitude):
     weather = requests.get(f"https://api.darksky.net/forecast/c5c0032498bd7f4153671aca4d378dfa/{latitude},{longitude}").json()
