@@ -13,4 +13,7 @@
         <input type="text" name="password" placeholder="Enter password Here">
         <button>Create account</button>
     </form>
+    <form action="{{ url_for('login') }}" method="post">
+        <button name="back">Back</button>
+    </form>
 {% endblock %}

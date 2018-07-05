@@ -23,28 +23,6 @@ engine = create_engine(os.getenv("DATABASE_URL"))
 db = scoped_session(sessionmaker(bind=engine))
 
 
-# @app.route("/login", methods=["GET", "POST"])
-# def login():
-#     print(session["username"], session["password"])
-#     logged_in_yet = False
-#     logged_in = False
-#     if request.method == "POST":
-#         if "uper_i00d" not in session:
-#             print("aaaaaa")
-#             session["uper_i00d"] = 0
-#             session["username"] = request.form.get("username")
-#             session["password"] = request.form.get("password")
-#         else:
-#             logged_in_yet = True
-#             if session["username"] == request.form.get("username") and session["password"] == request.form.get("password"):
-#                 logged_in = True
-#             else:
-#                 logged_in = False
-#     if logged_in and logged_in_yet:
-#         return render_template("main.html")
-#     return render_template("login.html", logged_in_yet=logged_in_yet, logged_in=logged_in)
-
-
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
@@ -57,30 +35,42 @@ def index():
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
+        if request.form.get("back") != None:
+            return render_template("index.html")
         username = request.form.get("username")
         password = request.form.get("password")
         if "accounts" not in session:
             session["accounts"] = dict()
         if username in session["accounts"]:
-            return render_template("signup.html", alert="Uername exists")
+            return render_template("signup.html", alert="Uername already exists")
         session["accounts"][username] = {"username": username, "password": password}
-        session["current user"] = username
-        return render_template("main.html")
+        print(username)
+        session["current_user"] = username
+        return render_template("main.html", username = session["current_user"])
     return render_template("signup.html")
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
+        if request.form.get("back") != None:
+            return render_template("index.html")
         username = request.form.get("username")
         password = request.form.get("password")
         if "accounts" not in session:
             session["accounts"] = dict()
         if username in session["accounts"]:
             if password == session["accounts"][username]["password"]:
-                session["current user"] = username
-                return render_template("main.html")
-        return render_template("login.html", alert="account doesn't exist")
+                print(username)
+                session["current_user"] = username
+                return render_template("main.html", username = session["current_user"])
+        return render_template("login.html", alert="wrong username or password")
     return render_template("login.html")
+
+@app.route("/main", methods=["GET", "POST"])
+def logout():
+    if request.method == "POST":
+        if request.form.get("log out") != None:
+            return render_template("index.html")
 
 @app.route("/<string:latitude>,<string:longitude>")
 def hello(latitude, longitude):
