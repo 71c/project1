@@ -1,20 +1,12 @@
 {% extends "layout.html" %}
 
 {% block heading %}
-    Notes
+    Welcome
 {% endblock %}
 
 {% block body %}
-    {% if logged_in_yet %}
-        {{ login_success_or_failure_message }}
-    {% else %}
-        Please enter your new username and password.
-    {% endif %}
-    <form action="{{ url_for('login') }}" method="post">
-        <input type="text" name="username" placeholder="Enter username Here">
-        <input type="text" name="password" placeholder="Enter password Here">
-        <button>Submit</button>
+    <form action="{{ url_for('index') }}" method="post">
+        <button name="log in">Log in</button>
+        <button name="sign up">Sign up</button>
     </form>
 {% endblock %}
-
-</html>
