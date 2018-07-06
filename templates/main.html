@@ -5,7 +5,5 @@
 {% endblock %}
 
 {% block body %}
-    <form action="{{ url_for('logout') }}" method="post">
-        <button name="log out">Log out</button>
-    </form>
+    <a href="{{ url_for('index') }}" name="log out">Log out</a>
 {% endblock %}
