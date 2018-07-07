@@ -35,10 +35,12 @@ def index():
 @app.route("/signup", methods=["POST", "GET"])
 def signup():
     if request.method == "POST":
-        if request.form.get("back") != None:
-            return render_template("index.html")
         username = request.form.get("username")
         password = request.form.get("password")
+        if len(username) < 1:
+            return render_template("signup.html", alert="You need to have a username")
+        if len(password) < 1:
+            return render_template("signup.html", alert="You need to have a password")
         if db.execute("SELECT * FROM accounts WHERE username = :username", {"username": username}).rowcount > 0:
             return render_template("signup.html", alert="Uername already exists")
         db.execute("INSERT INTO accounts (username, password) VALUES (:username, :password)", {"username": username, "password": password})
@@ -61,11 +63,19 @@ def login():
         return render_template("login.html", alert="wrong username or password")
     return render_template("login.html")
 
-@app.route("/main")
-def logout():
+@app.route("/main", methods=["POST"])
+def main():
     if request.method == "POST":
         if request.form.get("log out") != None:
             session["user id"] = -1
+        search_term = request.form.get("search term")
+        results = []
+        if search_term.isdigit(): # zip code
+            results = db.execute("SELECT * FROM locations WHERE zipcode = :zipcode", {"zipcode": search_term}).fetchall()
+        else:
+            search_term = "%" + search_term + "%"
+            results = db.execute(f"SELECT * FROM locations WHERE city LIKE {search_term}").fetchall()
+        return render_template("results.html", results=results)
     # username = db.execute("SELECT * FROM accounts WHERE id = :id", {"id": session["user id"]}).fetchone()["username"]
     # print(db.execute("SELECT * FROM accounts WHERE id = :id", {"id": session["user id"]}).fetchone())
     # return render_template("main.html", username=username)

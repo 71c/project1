@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+
+{% block heading %}
+    Search
+{% endblock %}
+
+{% block body %}
+    You're logged into {{ username }}.<br>
+    <ul>
+        {% for result in results %}
+            <li>{{ result }}</li>
+        {% endfor %}
+    </ul>
+
+{% endblock %}
