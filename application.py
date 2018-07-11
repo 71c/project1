@@ -90,9 +90,17 @@ def results(search_term):
 
     return render_template("results.html", results=results, username=username, message="" if len(results) > 0 else "No results.")
 
-@app.route("/<string:zipcode>", methods=["GET"])
+@app.route("/<string:zipcode>", methods=["GET", "POST"])
 def location(zipcode):
     if zipcode.isdigit():
+        if request.method == "POST":
+            if request.form.get("log visit") != None:
+                if db.execute("SELECT * FROM checkins WHERE user_id = :user_id AND zipcode = :zipcode", {"user_id": session["user id"], "zipcode": zipcode}).rowcount == 0:
+                    db.execute("INSERT INTO checkins (user_id, zipcode) VALUES (:user_id, :zipcode)",
+                        {"user_id": session["user id"], "zipcode": zipcode})
+                    db.commit()
+
+
         username = db.execute("SELECT * FROM accounts WHERE id = :id", {"id": session["user id"]}).fetchone()["username"]
 
         loc = db.execute("SELECT * FROM locations WHERE zipcode = :zipcode", {"zipcode": zipcode}).fetchone()
