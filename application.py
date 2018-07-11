@@ -46,7 +46,7 @@ def signup():
         db.execute("INSERT INTO accounts (username, password) VALUES (:username, :password)", {"username": username, "password": password})
         db.commit()
         session["user id"] = db.execute("SELECT id FROM accounts WHERE username = :username", {"username": username}).fetchone()["id"]
-        return render_template("search.html", username=username)
+        return redirect(url_for('search'))
     return render_template("signup.html")
 
 @app.route("/login", methods=["POST", "GET"])
@@ -59,23 +59,25 @@ def login():
         if db.execute("SELECT * FROM accounts WHERE username = :username and password = :password", {"username": username, "password": password}).rowcount > 0:
             session["user id"] = db.execute("SELECT id FROM accounts WHERE username = :username", {"username": username}).fetchone()["id"]
             print(username)
-            return render_template("search.html", username=username)
+            return redirect(url_for('search'))
         return render_template("login.html", alert="wrong username or password", alert_class="alert alert-danger")
     return render_template("login.html")
 
 @app.route("/search", methods=["POST", "GET"])
 def search():
     if request.method == "POST":
-        if request.form.get("log out") != None:
-            session["user id"] = -1
-            return render_template("index.html")
         search_term = request.form.get("search term")
         if search_term != None:
             return redirect(url_for('results', search_term=search_term))
 
-    return render_template("search.html")
+        if request.form.get("log out") != None:
+            session["user id"] = -1
+            return render_template("index.html")
 
-@app.route("/search/<string:search_term>", methods=["POST", "GET"])
+    username = db.execute("SELECT * FROM accounts WHERE id = :id", {"id": session["user id"]}).fetchone()["username"]
+    return render_template("search.html", username=username)
+
+@app.route("/results/<string:search_term>", methods=["POST", "GET"])
 def results(search_term):
     print("HIE")
     results = []
@@ -88,20 +90,21 @@ def results(search_term):
 
     return render_template("results.html", results=results, username=username, message="" if len(results) > 0 else "No results.")
 
-@app.route("/<string:zipcode>", methods=["POST", "GET"])
+@app.route("/<string:zipcode>", methods=["GET"])
 def location(zipcode):
-    username = db.execute("SELECT * FROM accounts WHERE id = :id", {"id": session["user id"]}).fetchone()["username"]
+    if zipcode.isdigit():
+        username = db.execute("SELECT * FROM accounts WHERE id = :id", {"id": session["user id"]}).fetchone()["username"]
 
-    loc = db.execute("SELECT * FROM locations WHERE zipcode = :zipcode", {"zipcode": zipcode}).fetchone()
-    latitude = loc.latitude
-    longitude = loc.longitude
+        loc = db.execute("SELECT * FROM locations WHERE zipcode = :zipcode", {"zipcode": zipcode}).fetchone()
+        latitude = loc.latitude
+        longitude = loc.longitude
 
-    weather = requests.get(f"https://api.darksky.net/forecast/c5c0032498bd7f4153671aca4d378dfa/{latitude},{longitude}").json()["currently"]
-    time = datetime.datetime.fromtimestamp(
-        weather["time"]
-    ).strftime('%Y-%m-%d %H:%M:%S')
+        weather = requests.get(f"https://api.darksky.net/forecast/c5c0032498bd7f4153671aca4d378dfa/{latitude},{longitude}").json()["currently"]
+        time = datetime.datetime.fromtimestamp(
+            weather["time"]
+        ).strftime('%Y-%m-%d %H:%M:%S')
 
-    return render_template("location.html", location=loc, username=username, weather=weather, time=time)
+        return render_template("location.html", location=loc, username=username, weather=weather, time=time)
 
 @app.route("/<string:latitude>,<string:longitude>")
 def hello(latitude, longitude):

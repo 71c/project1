@@ -36,7 +36,7 @@ def main():
         if i != 0:
 
             values = {
-                "z": zipcode.zfill(5),
+                "z": zipcode.zfill(5), # The csv file had leading zeroes removed so I just add them back in.
                 "c": city,
                 "s": state,
                 "a": latitude,

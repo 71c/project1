@@ -9,6 +9,7 @@
 {% block body %}
 
     <table class="table table-striped">
+        <!--button that says log visit-->
         <tbody>
             {% for attribute in ['zipcode', 'city', 'state', 'latitude', 'longitude', 'population'] %}
                 <tr>
@@ -39,4 +40,7 @@
             </tr>
         </tbody>
     </table>
+
+    <h2>Comments</h2>
+
 {% endblock %}
