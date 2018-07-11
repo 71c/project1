@@ -15,31 +15,43 @@ db = scoped_session(sessionmaker(bind=engine))
 
 def main():
 
-
-    command = """CREATE TABLE locations (
-	zipcode INTEGER PRIMARY KEY,
+    # creates the table
+    create_table = """CREATE TABLE locations (
+	zipcode VARCHAR NOT NULL UNIQUE,
 	city VARCHAR NOT NULL,
-	state CHAR(2) NOT NULL,
+	state VARCHAR NOT NULL,
 	latitude DECIMAL NOT NULL,
 	longitude DECIMAL NOT NULL,
 	population INTEGER NOT NULL
 );"""
 
-    db.execute(command)
+    db.execute(create_table)
 
     # Open a file using Python's CSV reader.
     f = open("zips.csv")
     reader = csv.reader(f)
 
     # Iterate over the rows of the opened CSV file.
-    for i, data in enumerate(reader):
+    for i, (zipcode, city, state, latitude, longitude, population) in enumerate(reader):
         if i != 0:
-            # t = time()
-            variables = {"z": data[0], "c": data[1], "s": data[2], "a": data[3], "o": data[4], "p": data[5]}
-            db.execute("INSERT INTO locations (zipcode, city, state, latitude, longitude, population) VALUES (:z, :c, :s, :a, :o, :p)",
-                    variables)
-            # t = time() - t
-            print(f"did it {i}")
+
+            values = {
+                "z": zipcode.zfill(5),
+                "c": city,
+                "s": state,
+                "a": latitude,
+                "o": longitude,
+                "p": population
+            }
+
+            add_row = """INSERT INTO locations
+            (zipcode, city, state, latitude, longitude, population)
+            VALUES (:z, :c, :s, :a, :o, :p)"""
+
+            db.execute(add_row, values)
+
+            print(f"added row {i}")
+
     db.commit()
 
 if __name__ == "__main__":

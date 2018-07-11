@@ -1,0 +1,42 @@
+{% extends "layout.html" %}
+
+{% block heading %}
+    Location
+{% endblock %}
+
+
+
+{% block body %}
+
+    <table class="table table-striped">
+        <tbody>
+            {% for attribute in ['zipcode', 'city', 'state', 'latitude', 'longitude', 'population'] %}
+                <tr>
+                    <th scope="row">{{ attribute.capitalize() }}</th>
+                    <td>{{ location[attribute] }}</td>
+                </tr>
+            {% endfor %}
+
+            <tr>
+                <th scope="row">Time</th>
+                <td>{{ time }}</td>
+            </tr>
+            <tr>
+                <th scope="row">Summary</th>
+                <td>{{ weather.summary }}</td>
+            </tr>
+            <tr>
+                <th scope="row">Temperature</th>
+                <td>{{ weather.temperature }}°F</td>
+            </tr>
+            <tr>
+                <th scope="row">Dew Point</th>
+                <td>{{ weather.dewPoint }}</td>
+            </tr>
+            <tr>
+                <th scope="row">Humidity</th>
+                <td>{{ weather.humidity }}%</td>
+            </tr>
+        </tbody>
+    </table>
+{% endblock %}

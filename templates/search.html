@@ -5,10 +5,9 @@
 {% endblock %}
 
 {% block body %}
-    You're logged into {{ username }}.<br>
-    <a href="{{ url_for('index') }}" name="log out">Log out</a>
+    You're logged into {{ username }}. <a href="{{ url_for('index') }}" name="log out">Log out</a>
 
-    <form action="{{ url_for('main') }}" method="post">
+    <form action="{{ url_for('search') }}" method="post">
         <input type="text" name="search term" placeholder="type a ZIP code or a city or town">
         <button>Search</button>
     </form>
