@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block body %}
-    You're logged into {{ username }}.<br>
+    You're logged in as {{ username }}. <a href="{{ url_for('index') }}" name="log out">Log out</a><br>
     {{ message }}
     <table class="table table-striped">
         <thead>

@@ -92,64 +92,70 @@ def results(search_term):
 
 @app.route("/<string:zipcode>", methods=["GET", "POST"])
 def location(zipcode):
-    if zipcode.isdigit():
 
-        # I use this a few times for database stuff
-        variables = {"user_id": session["user id"], "zipcode": zipcode}
+    # Make sure location exists.
+    location = db.execute("SELECT * FROM locations WHERE zipcode = :zipcode", {"zipcode": zipcode}).fetchone()
+    if location is None:
+        return render_template('error.html', message="404 error: page not found")
 
-        give_alert = False
+    # I use this a few times for database stuff
+    variables = {"user_id": session["user id"], "zipcode": zipcode}
 
-        if request.method == "POST":
-                # whether the user already logged a visit
-                visit_was_logged = db.execute("SELECT * FROM checkins WHERE user_id = :user_id AND zipcode = :zipcode", variables).rowcount > 0
+    give_alert = False
 
-                if not visit_was_logged:
-                    comment = request.form.get("comment")
-                    variables["comment"] = comment
-                    db.execute("INSERT INTO checkins (user_id, zipcode, comment) VALUES (:user_id, :zipcode, :comment)", variables)
-                    db.commit()
-                else:
-                    give_alert = True
+    if request.method == "POST":
+            # whether the user already logged a visit
+            visit_was_logged = db.execute("SELECT * FROM checkins WHERE user_id = :user_id AND zipcode = :zipcode", variables).rowcount > 0
+
+            if not visit_was_logged:
+                comment = request.form.get("comment")
+                variables["comment"] = comment
+                db.execute("INSERT INTO checkins (user_id, zipcode, comment) VALUES (:user_id, :zipcode, :comment)", variables)
+                db.commit()
+            else:
+                give_alert = True
 
 
-        username = db.execute("SELECT * FROM accounts WHERE id = :user_id", variables).fetchone()["username"]
+    username = db.execute("SELECT * FROM accounts WHERE id = :user_id", variables).fetchone()["username"]
 
-        loc = db.execute("SELECT * FROM locations WHERE zipcode = :zipcode", variables).fetchone()
-        latitude = loc.latitude
-        longitude = loc.longitude
+    loc = db.execute("SELECT * FROM locations WHERE zipcode = :zipcode", variables).fetchone()
+    latitude = loc.latitude
+    longitude = loc.longitude
 
-        weather = requests.get(f"https://api.darksky.net/forecast/c5c0032498bd7f4153671aca4d378dfa/{latitude},{longitude}").json()["currently"]
-        time = datetime.datetime.fromtimestamp(
-            weather["time"]
-        ).strftime('%Y-%m-%d %H:%M:%S')
+    weather = requests.get(f"https://api.darksky.net/forecast/c5c0032498bd7f4153671aca4d378dfa/{latitude},{longitude}").json()["currently"]
+    time = datetime.datetime.fromtimestamp(
+        weather["time"]
+    ).strftime('%Y-%m-%d %H:%M:%S')
 
-        # comments = db.execute("SELECT user_id, comment FROM checkins WHERE zipcode = :zipcode", variables).fetchall()
-        comments = db.execute("""SELECT username, comment
-        FROM checkins INNER JOIN accounts ON (checkins.user_id = accounts.id AND checkins.zipcode = :zipcode)""", variables)
+    # comments = db.execute("SELECT user_id, comment FROM checkins WHERE zipcode = :zipcode", variables).fetchall()
+    comments = db.execute("""SELECT username, comment
+    FROM checkins INNER JOIN accounts ON (checkins.user_id = accounts.id AND checkins.zipcode = :zipcode)""", variables)
 
-        return render_template("location.html",
-            location=loc,
-            username=username,
-            weather=weather,
-            time=time,
-            comments=comments,
-            alert="You already submitted a check-in for this location." if give_alert else "",
-            alert_class="alert alert-danger" if give_alert else "")
+    return render_template("location.html",
+        location=loc,
+        username=username,
+        weather=weather,
+        time=time,
+        comments=comments,
+        alert="You already submitted a check-in for this location." if give_alert else "",
+        alert_class="alert alert-danger" if give_alert else "")
 
 
 @app.route("/api/<string:zipcode>")
 def flight_api(zipcode):
     """Return details about a single location."""
 
-    # Make sure flight exists.
+    # Make sure location exists.
     location = db.execute("SELECT * FROM locations WHERE zipcode = :zipcode", {"zipcode": zipcode}).fetchone()
     if location is None:
-        return jsonify({"error": "Invalid flight_id"}), 422
+        return render_template('error.html', message="404 error: page not found")
 
+    # get number of check-ins
     checkin_count = db.execute("""SELECT username, comment
         FROM checkins INNER JOIN accounts ON
         (checkins.user_id = accounts.id AND checkins.zipcode = :zipcode)""", {"zipcode": zipcode}).rowcount
 
+    # return JSON about location
     return jsonify({
             "place_name": location.city.capitalize(),
             "state": location.state,
@@ -159,12 +165,6 @@ def flight_api(zipcode):
             "population": location.population,
             "check_ins": checkin_count
         })
-
-
-@app.route("/<string:latitude>,<string:longitude>")
-def hello(latitude, longitude):
-    weather = requests.get(f"https://api.darksky.net/forecast/c5c0032498bd7f4153671aca4d378dfa/{latitude},{longitude}").json()
-    return json.dumps(weather["currently"])
 
 if __name__ == '__main__':
     app.debug = True
