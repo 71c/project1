@@ -7,10 +7,11 @@
 
 
 {% block body %}
-    You're logged in as {{ username }}. <a href="{{ url_for('index') }}" name="log out">Log out</a>
+    <form method="post">
+    You're logged in as {{ username }}. <button name="log out">Log out</button>
+    </form>
 
     <table class="table table-striped">
-
         <tbody>
             {% for attribute in ['zipcode', 'city', 'state', 'latitude', 'longitude', 'population'] %}
                 <tr>

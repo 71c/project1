@@ -25,9 +25,6 @@ app.config["SESSION_TYPE"] = "filesystem"
 engine = create_engine(os.getenv("DATABASE_URL"))
 db = scoped_session(sessionmaker(bind=engine))
 
-def print_stuff():
-    print("stuff")
-
 @app.route("/", methods=["POST", "GET"])
 def index():
     return render_template("index.html")
@@ -58,7 +55,6 @@ def login():
         password = request.form.get("password")
         if db.execute("SELECT * FROM accounts WHERE username = :username and password = :password", {"username": username, "password": password}).rowcount > 0:
             session["user id"] = db.execute("SELECT id FROM accounts WHERE username = :username", {"username": username}).fetchone()["id"]
-            print(username)
             return redirect(url_for('search'))
         return render_template("login.html", alert="wrong username or password", alert_class="alert alert-danger")
     return render_template("login.html")
@@ -72,14 +68,17 @@ def search():
 
         if request.form.get("log out") != None:
             session["user id"] = -1
-            return render_template("index.html")
+            return redirect(url_for('index'))
 
     username = db.execute("SELECT * FROM accounts WHERE id = :id", {"id": session["user id"]}).fetchone()["username"]
     return render_template("search.html", username=username)
 
 @app.route("/results/<string:search_term>", methods=["POST", "GET"])
 def results(search_term):
-    print("HIE")
+    if request.method == "POST":
+        if request.form.get("log out") != None:
+            session["user id"] = -1
+            return redirect(url_for('index'))
     results = []
     if search_term.isdigit(): # zip code
         results = db.execute("SELECT * FROM locations WHERE zipcode = :zipcode", {"zipcode": search_term}).fetchall()
@@ -101,22 +100,36 @@ def location(zipcode):
     # I use this a few times for database stuff
     variables = {"user_id": session["user id"], "zipcode": zipcode}
 
+    # whether user is logged in
+    logged_in = session["user id"] != -1
+
     give_alert = False
 
+    # checks if user is also logged in
     if request.method == "POST":
-            # whether the user already logged a visit
-            visit_was_logged = db.execute("SELECT * FROM checkins WHERE user_id = :user_id AND zipcode = :zipcode", variables).rowcount > 0
+        if request.form.get("log out") != None:
+            session["user id"] = -1
+            return redirect(url_for('index'))
+        else:
+            if logged_in:
+                # whether the user already logged a visit
+                visit_was_logged = db.execute("SELECT * FROM checkins WHERE user_id = :user_id AND zipcode = :zipcode", variables).rowcount > 0
 
-            if not visit_was_logged:
-                comment = request.form.get("comment")
-                variables["comment"] = comment
-                db.execute("INSERT INTO checkins (user_id, zipcode, comment) VALUES (:user_id, :zipcode, :comment)", variables)
-                db.commit()
+                if not visit_was_logged:
+                    comment = request.form.get("comment")
+                    variables["comment"] = comment
+                    db.execute("INSERT INTO checkins (user_id, zipcode, comment) VALUES (:user_id, :zipcode, :comment)", variables)
+                    db.commit()
+                else:
+                    give_alert = True
             else:
                 give_alert = True
 
 
-    username = db.execute("SELECT * FROM accounts WHERE id = :user_id", variables).fetchone()["username"]
+    if session["user id"] != -1:
+        username = db.execute("SELECT * FROM accounts WHERE id = :user_id", variables).fetchone()["username"]
+    else:
+        username = "…Wait - you're not logged in!"
 
     loc = db.execute("SELECT * FROM locations WHERE zipcode = :zipcode", variables).fetchone()
     latitude = loc.latitude
@@ -137,7 +150,7 @@ def location(zipcode):
         weather=weather,
         time=time,
         comments=comments,
-        alert="You already submitted a check-in for this location." if give_alert else "",
+        alert=("You already submitted a check-in for this location.", "You're not logged in!")[not logged_in] if give_alert else "",
         alert_class="alert alert-danger" if give_alert else "")
 
 
