@@ -22,3 +22,4 @@ On the `location.html` page, a check-in is a comment. When it says "[number] Che
 * README.md: the readme
 * reqirements.txt: the required Python modules for running the application
 * zips.csv: location about places by zipcode
+* danltck14i7gdv.sql: sql database used
