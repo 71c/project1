@@ -8,13 +8,7 @@
 
 {% block body %}
 
-    <table action="{{ url_for('location', zipcode=zipcode) }}" class="table table-striped">
-        <!--button that says log visit-->
-        <form method="post">
-            <!--<div class="form-group">-->
-                <button class="btn btn-primary" name="log visit">Log Visit</button>
-            <!--</div>-->
-        </form>
+    <table class="table table-striped">
 
         <tbody>
             {% for attribute in ['zipcode', 'city', 'state', 'latitude', 'longitude', 'population'] %}
@@ -42,11 +36,37 @@
             </tr>
             <tr>
                 <th scope="row">Humidity</th>
-                <td>{{ weather.humidity }}%</td>
+                <td>{{ weather.humidity * 100 }}%</td>
             </tr>
         </tbody>
     </table>
 
-    <h2>Comments</h2>
+    <h2>{{ comments.rowcount }} Check-ins</h2>
+
+    <div class="{{ alert_class }}" role="alert">
+        {% if alert != None %}
+          {{ alert }}
+        {% endif %}
+    </div>
+
+    <form method="post">
+        <textarea rows="1" cols="50" name="comment"></textarea>
+        <!--<button class="btn btn-primary" name="log visit">Log Visit</button>-->
+        <button name="log visit">Log Visit</button>
+    </form>
+
+    <!--I used the examples in the following links:-->
+    <!--https://getbootstrap.com/docs/4.1/components/list-group/-->
+    <!--https://getbootstrap.com/docs/4.1/layout/media-object/-->
+    <ul class="list-group list-group-flush">
+        {% for comment in comments %}
+          <li class="list-group-item">
+            <div class="media-body">
+              <h5 class="mt-0 mb-1">{{ comment.username }}</h5>
+              {{ comment.comment }}
+            </div>
+          </li>
+        {% endfor %}
+    </ul>
 
 {% endblock %}

@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, render_template, request, session
+from flask import Flask, render_template, request, session, jsonify
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 import requests, json
@@ -93,17 +93,28 @@ def results(search_term):
 @app.route("/<string:zipcode>", methods=["GET", "POST"])
 def location(zipcode):
     if zipcode.isdigit():
+
+        # I use this a few times for database stuff
+        variables = {"user_id": session["user id"], "zipcode": zipcode}
+
+        give_alert = False
+
         if request.method == "POST":
-            if request.form.get("log visit") != None:
-                if db.execute("SELECT * FROM checkins WHERE user_id = :user_id AND zipcode = :zipcode", {"user_id": session["user id"], "zipcode": zipcode}).rowcount == 0:
-                    db.execute("INSERT INTO checkins (user_id, zipcode) VALUES (:user_id, :zipcode)",
-                        {"user_id": session["user id"], "zipcode": zipcode})
+                # whether the user already logged a visit
+                visit_was_logged = db.execute("SELECT * FROM checkins WHERE user_id = :user_id AND zipcode = :zipcode", variables).rowcount > 0
+
+                if not visit_was_logged:
+                    comment = request.form.get("comment")
+                    variables["comment"] = comment
+                    db.execute("INSERT INTO checkins (user_id, zipcode, comment) VALUES (:user_id, :zipcode, :comment)", variables)
                     db.commit()
+                else:
+                    give_alert = True
 
 
-        username = db.execute("SELECT * FROM accounts WHERE id = :id", {"id": session["user id"]}).fetchone()["username"]
+        username = db.execute("SELECT * FROM accounts WHERE id = :user_id", variables).fetchone()["username"]
 
-        loc = db.execute("SELECT * FROM locations WHERE zipcode = :zipcode", {"zipcode": zipcode}).fetchone()
+        loc = db.execute("SELECT * FROM locations WHERE zipcode = :zipcode", variables).fetchone()
         latitude = loc.latitude
         longitude = loc.longitude
 
@@ -112,7 +123,43 @@ def location(zipcode):
             weather["time"]
         ).strftime('%Y-%m-%d %H:%M:%S')
 
-        return render_template("location.html", location=loc, username=username, weather=weather, time=time)
+        # comments = db.execute("SELECT user_id, comment FROM checkins WHERE zipcode = :zipcode", variables).fetchall()
+        comments = db.execute("""SELECT username, comment
+        FROM checkins INNER JOIN accounts ON (checkins.user_id = accounts.id AND checkins.zipcode = :zipcode)""", variables)
+
+        return render_template("location.html",
+            location=loc,
+            username=username,
+            weather=weather,
+            time=time,
+            comments=comments,
+            alert="You already submitted a check-in for this location." if give_alert else "",
+            alert_class="alert alert-danger" if give_alert else "")
+
+
+@app.route("/api/<string:zipcode>")
+def flight_api(zipcode):
+    """Return details about a single location."""
+
+    # Make sure flight exists.
+    location = db.execute("SELECT * FROM locations WHERE zipcode = :zipcode", {"zipcode": zipcode}).fetchone()
+    if location is None:
+        return jsonify({"error": "Invalid flight_id"}), 422
+
+    checkin_count = db.execute("""SELECT username, comment
+        FROM checkins INNER JOIN accounts ON
+        (checkins.user_id = accounts.id AND checkins.zipcode = :zipcode)""", {"zipcode": zipcode}).rowcount
+
+    return jsonify({
+            "place_name": location.city.capitalize(),
+            "state": location.state,
+            "latitude": float(location.latitude),
+            "longitude": float(location.longitude),
+            "zip": location.zipcode,
+            "population": location.population,
+            "check_ins": checkin_count
+        })
+
 
 @app.route("/<string:latitude>,<string:longitude>")
 def hello(latitude, longitude):
